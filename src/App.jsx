@@ -3,7 +3,7 @@ import { Search, Plus, Trash2, Home, BookOpen, BarChart3, Settings, Utensils } f
 import "./App.css";
 
 const STORAGE_KEY = "adis_food_tracker_v2";
-
+const appName = "Lazy Food Tracker";
 const foodDb = [
   { id: 1, name: "Chicken breast, cooked", category: "Meat", serving: 100, unit: "g", kcal: 165, protein: 31, carbs: 0, fat: 3.6, salt: 0.19 },
   { id: 2, name: "Egg, whole", category: "Eggs", serving: 1, unit: "egg", kcal: 72, protein: 6.3, carbs: 0.4, fat: 4.8, salt: 0.18 },
@@ -69,16 +69,14 @@ export default function App() {
     fat: 70,
     salt: 5,
   });
-  const [appName, setAppName] = useState("Adis Food Tracker");
+  const [appName, ] = useState("Lazy Food Tracker");
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const data = JSON.parse(saved);
-      setEntriesByDate(data.entriesByDate || {});
-      setGoals(data.goals || goals);
-      setAppName(data.appName || "Adis Food Tracker");
-    }
+setEntriesByDate(data.entriesByDate || {});
+setGoals(data.goals || goals);    }
   }, []);
 
   useEffect(() => {
@@ -344,8 +342,6 @@ export default function App() {
             <h2>Settings</h2>
 
             <div className="card">
-              <label>App name</label>
-              <input value={appName} onChange={(e) => setAppName(e.target.value)} />
 
               <h3>Daily goals</h3>
 

@@ -1,13 +1,13 @@
 :root {
-  --bg: #f8fafc;
-  --card: #ffffff;
-  --text: #0f172a;
+  --bg: #ffffff;
+  --card: #00aeff;
+  --text: #000000;
   --muted: #64748b;
-  --border: #e2e8f0;
+  --border: #ffffff;
   --soft: #f1f5f9;
   --primary: #0f172a;
   --primary-text: #ffffff;
-  --danger: #fee2e2;
+  --danger: #000000;
 }
 
 * {
@@ -32,24 +32,24 @@ input,
 select,
 textarea {
   width: 100%;
-  border: 1px solid #cbd5e1;
+  border: 1px solid #1c5dad;
   border-radius: 14px;
   padding: 12px;
   font-size: 16px;
   background: #ffffff;
-  color: #0f172a;
+  color: #ffffff;
   -webkit-text-fill-color: #0f172a;
   color-scheme: light;
 }
 
 select option {
   background: #ffffff;
-  color: #0f172a;
+  color: #000000;
 }
 
 input::placeholder,
 textarea::placeholder {
-  color: #64748b;
+  color: #1c5dad;
   -webkit-text-fill-color: #64748b;
 }
 
@@ -336,7 +336,7 @@ p {
   bottom: 14px;
   transform: translateX(-50%);
   width: min(94%, 700px);
-  background: #ffffff;
+  background: #191631;
   border: 1px solid var(--border);
   box-shadow: 0 12px 40px rgba(15, 23, 42, 0.18);
   border-radius: 24px;
@@ -361,8 +361,8 @@ p {
 
 .nav-button.active {
   background: var(--primary);
-  color: white;
-  -webkit-text-fill-color: white;
+  color: rgb(33, 130, 175);
+  -webkit-text-fill-color: rgb(245, 208, 0);
 }
 
 .nav-button svg {
