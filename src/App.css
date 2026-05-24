@@ -1,13 +1,15 @@
 :root {
-  --bg: #ffffff;
-  --card: #00aeff;
-  --text: #000000;
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --text: #0f172a;
   --muted: #64748b;
-  --border: #ffffff;
+  --border: #e2e8f0;
   --soft: #f1f5f9;
   --primary: #0f172a;
   --primary-text: #ffffff;
-  --danger: #000000;
+  --danger: #fee2e2;
+  --danger-text: #991b1b;
+  --accent: #22c55e;
 }
 
 * {
@@ -32,24 +34,24 @@ input,
 select,
 textarea {
   width: 100%;
-  border: 1px solid #1c5dad;
+  border: 1px solid #cbd5e1;
   border-radius: 14px;
   padding: 12px;
   font-size: 16px;
   background: #ffffff;
-  color: #ffffff;
+  color: #0f172a;
   -webkit-text-fill-color: #0f172a;
   color-scheme: light;
 }
 
 select option {
   background: #ffffff;
-  color: #000000;
+  color: #0f172a;
 }
 
 input::placeholder,
 textarea::placeholder {
-  color: #1c5dad;
+  color: #64748b;
   -webkit-text-fill-color: #64748b;
 }
 
@@ -58,9 +60,9 @@ button {
 }
 
 .app {
-  max-width: 1100px;
+  max-width: 1120px;
   margin: 0 auto;
-  padding: 16px 16px 88px;
+  padding: 16px 16px 96px;
 }
 
 .app-header {
@@ -171,11 +173,9 @@ p {
   border-radius: 999px;
 }
 
-.primary-button {
+.primary-button,
+.secondary-button {
   border: 0;
-  background: var(--primary);
-  color: var(--primary-text);
-  -webkit-text-fill-color: var(--primary-text);
   border-radius: 14px;
   padding: 12px 16px;
   font-weight: 800;
@@ -185,7 +185,20 @@ p {
   gap: 8px;
 }
 
-.primary-button.full {
+.primary-button {
+  background: var(--primary);
+  color: var(--primary-text);
+  -webkit-text-fill-color: var(--primary-text);
+}
+
+.secondary-button {
+  background: var(--soft);
+  color: var(--text);
+  -webkit-text-fill-color: var(--text);
+}
+
+.primary-button.full,
+.secondary-button.full {
   width: 100%;
   margin-top: 16px;
 }
@@ -216,16 +229,20 @@ p {
   justify-content: flex-end;
 }
 
-.entry-info span {
+.entry-info span,
+.macro-row span {
   background: var(--soft);
   padding: 7px 10px;
   border-radius: 999px;
   font-size: 14px;
 }
 
-.entry-info button {
+.entry-info button,
+.recipe-item button {
   border: 0;
   background: var(--danger);
+  color: var(--danger-text);
+  -webkit-text-fill-color: var(--danger-text);
   border-radius: 999px;
   padding: 7px 10px;
 }
@@ -238,16 +255,25 @@ p {
   text-align: center;
 }
 
-.preview-box {
+.preview-box,
+.macro-editor {
   margin-top: 16px;
   padding: 14px;
   background: var(--soft);
   border-radius: 18px;
 }
 
-.preview-box p {
+.preview-box p,
+.macro-editor p,
+.small-muted {
   color: var(--muted);
   margin-top: 6px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
 }
 
 .search-box {
@@ -269,19 +295,28 @@ p {
   -webkit-text-fill-color: #0f172a;
 }
 
-.food-database {
+.food-database,
+.online-results,
+.recipe-list,
+.recipe-items {
   display: grid;
   gap: 10px;
 }
 
-.food-card {
+.food-card,
+.online-card,
+.recipe-card,
+.recipe-item {
   background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 20px;
   padding: 16px;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
 }
 
-.food-card p {
+.food-card p,
+.online-card p,
+.recipe-card p,
+.recipe-item p {
   color: var(--muted);
   margin-top: 4px;
 }
@@ -293,11 +328,65 @@ p {
   margin-top: 12px;
 }
 
-.macro-row span {
-  background: var(--soft);
-  padding: 7px 10px;
+.small-danger-button {
+  border: 0;
+  background: var(--danger);
+  color: var(--danger-text);
+  -webkit-text-fill-color: var(--danger-text);
   border-radius: 999px;
-  font-size: 14px;
+  padding: 7px 12px;
+  font-weight: 700;
+}
+
+.online-search-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.online-card {
+  display: flex;
+  gap: 12px;
+}
+
+.online-card img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 16px;
+  background: var(--soft);
+}
+
+.online-card-content {
+  flex: 1;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.error-text {
+  color: var(--danger-text);
+  margin-top: 10px;
+  font-weight: 700;
+}
+
+.recipe-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.recipe-item {
+  display: grid;
+  grid-template-columns: 1fr 120px auto;
+  gap: 10px;
+  align-items: center;
 }
 
 .weekly-list {
@@ -335,14 +424,14 @@ p {
   left: 50%;
   bottom: 14px;
   transform: translateX(-50%);
-  width: min(94%, 700px);
-  background: #191631;
+  width: min(96%, 780px);
+  background: #ffffff;
   border: 1px solid var(--border);
   box-shadow: 0 12px 40px rgba(15, 23, 42, 0.18);
   border-radius: 24px;
   padding: 8px;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   z-index: 50;
 }
 
@@ -352,17 +441,17 @@ p {
   color: var(--muted);
   -webkit-text-fill-color: var(--muted);
   border-radius: 18px;
-  padding: 10px 6px;
+  padding: 10px 4px;
   display: grid;
   justify-items: center;
   gap: 3px;
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .nav-button.active {
   background: var(--primary);
-  color: rgb(33, 130, 175);
-  -webkit-text-fill-color: rgb(245, 208, 0);
+  color: white;
+  -webkit-text-fill-color: white;
 }
 
 .nav-button svg {
@@ -381,7 +470,7 @@ p {
   }
 }
 
-@media (max-width: 800px) {
+@media (max-width: 850px) {
   .app-header {
     flex-direction: column;
   }
@@ -406,9 +495,26 @@ p {
     align-items: stretch;
     flex-direction: column;
   }
+
+  .online-search-row {
+    grid-template-columns: 1fr;
+  }
+
+  .recipe-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .recipe-item {
+    grid-template-columns: 1fr;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
-@media (max-width: 420px) {
+@media (max-width: 460px) {
   .app {
     padding-left: 12px;
     padding-right: 12px;
@@ -419,31 +525,21 @@ p {
   }
 
   .bottom-nav {
-    width: 96%;
+    width: 98%;
+    bottom: 8px;
+    padding: 6px;
+    border-radius: 20px;
+  }
+
+  .nav-button {
+    padding: 8px 2px;
   }
 
   .nav-button span {
-    font-size: 11px;
+    font-size: 10px;
   }
-}
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
 
-.small-danger-button {
-  border: 0;
-  background: #fee2e2;
-  color: #991b1b;
-  -webkit-text-fill-color: #991b1b;
-  border-radius: 999px;
-  padding: 7px 12px;
-  font-weight: 700;
-}
-
-@media (max-width: 600px) {
-  .form-grid {
-    grid-template-columns: 1fr;
+  .online-card {
+    flex-direction: column;
   }
 }
