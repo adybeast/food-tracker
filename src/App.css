@@ -58,6 +58,11 @@ button { cursor: pointer; }
   font-size: 38px;
   line-height: 1;
   letter-spacing: -1px;
+  background: linear-gradient(135deg, var(--primary), #39b96f, var(--accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
 }
 
 .app-header p { margin: 8px 0 0; color: var(--muted); }
@@ -417,4 +422,29 @@ p { margin: 0; }
   .nav-button span { font-size: 10px; }
   .online-card { flex-direction: column; }
   .food-modal { padding: 18px; border-radius: 24px; }
+}
+
+
+.segmented.three {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.macro-calculator-card .summary-grid {
+  margin-top: 14px;
+}
+
+.calculator-result {
+  margin-top: 16px;
+}
+
+.macro-calculator-card .button-row {
+  justify-content: flex-start;
+}
+
+.brand-title {
+  background: linear-gradient(135deg, var(--primary), #39b96f, var(--accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
 }

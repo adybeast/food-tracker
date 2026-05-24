@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Home, Utensils, BookOpen, ChefHat, Activity, MoreHorizontal,
-  Search, Plus, Trash2, Save, Wifi, X, Pencil, Scale
+  Search, Plus, Trash2, Save, Wifi, X, Pencil, Scale, Calculator
 } from "lucide-react";
 import "./App.css";
 
@@ -69,6 +69,53 @@ const blankFoodForm = { name: "", category: "Custom", serving: 100, unit: "g", k
 
 function todayKey() { return new Date().toISOString().slice(0, 10); }
 function round(n, digits = 1) { return Math.round(Number(n || 0) * Math.pow(10, digits)) / Math.pow(10, digits); }
+
+function kgFrom(value, unit) {
+  const n = Number(value || 0);
+  return unit === "lb" ? n / 2.20462 : n;
+}
+
+function cmFrom(value, unit) {
+  const n = Number(value || 0);
+  return unit === "in" ? n * 2.54 : n;
+}
+
+function calculateMacroPlan(form) {
+  const weightKg = kgFrom(form.weight, form.weightUnit);
+  const heightCm = cmFrom(form.height, form.heightUnit);
+  const age = Number(form.age || 0);
+
+  if (!weightKg || !heightCm || !age) return null;
+
+  const bmr =
+    form.sex === "female"
+      ? 10 * weightKg + 6.25 * heightCm - 5 * age - 161
+      : 10 * weightKg + 6.25 * heightCm - 5 * age + 5;
+
+  const tdee = bmr * Number(form.activityFactor || 1.2);
+  const weeklyPaceKg = Number(form.weeklyPaceKg || 0);
+  const dailyChange = (weeklyPaceKg * 7700) / 7;
+
+  let calories = tdee;
+  if (form.goal === "lose") calories = tdee - dailyChange;
+  if (form.goal === "gain") calories = tdee + dailyChange;
+
+  calories = Math.max(1200, calories);
+
+  const protein = weightKg * Number(form.proteinPerKg || 1.8);
+  const fat = (calories * (Number(form.fatPercent || 25) / 100)) / 9;
+  const carbs = Math.max(0, (calories - protein * 4 - fat * 9) / 4);
+
+  return {
+    bmr,
+    tdee,
+    calories,
+    protein,
+    carbs,
+    fat,
+    weightKg,
+  };
+}
 
 function unitsFor(system) {
   if (system === "us") return usUnits;
@@ -197,6 +244,20 @@ export default function App() {
     waist: "", abdomen: "", hips: "", chest: "", neck: "", upperArm: "", thigh: "", calf: "",
   }));
 
+  const [macroCalc, setMacroCalc] = useState({
+    sex: "male",
+    age: "",
+    height: "",
+    heightUnit: "cm",
+    weight: "",
+    weightUnit: "kg",
+    activityFactor: "1.375",
+    goal: "lose",
+    weeklyPaceKg: "0.5",
+    proteinPerKg: "1.8",
+    fatPercent: "25",
+  });
+
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -236,10 +297,49 @@ export default function App() {
 
   const weeklyAverage = last7Days.reduce((sum, d) => sum + d.totals.kcal, 0) / 7;
 
+  const macroResult = useMemo(() => calculateMacroPlan(macroCalc), [macroCalc]);
+
   function updateSearch(key, value) { setSearches(prev => ({ ...prev, [key]: value })); }
   function updateGoal(key, value) {
     setGoals(prev => ({ ...prev, [key]: ["goalType", "unitSystem", "bodyUnit", "weightUnit"].includes(key) ? value : Number(value) }));
   }
+
+  function updateMacroCalc(key, value) {
+    setMacroCalc(prev => ({ ...prev, [key]: value }));
+  }
+
+  function applyMacroPlanToGoals() {
+    if (!macroResult) {
+      alert("Fill in age, height and weight first.");
+      return;
+    }
+
+    setGoals(prev => ({
+      ...prev,
+      kcal: round(macroResult.calories, 0),
+      protein: round(macroResult.protein, 0),
+      carbs: round(macroResult.carbs, 0),
+      fat: round(macroResult.fat, 0),
+      goalType: macroCalc.goal,
+      weightUnit: macroCalc.weightUnit,
+    }));
+
+    alert("Macro plan applied to your daily goals.");
+  }
+
+  function useLatestWeightForCalculator() {
+    if (!latestWeight) {
+      alert("Add a weight entry first in the Body tab.");
+      return;
+    }
+
+    setMacroCalc(prev => ({
+      ...prev,
+      weight: latestWeight.weight,
+      weightUnit: latestWeight.unit || goals.weightUnit || "kg",
+    }));
+  }
+
   function progress(current, goal) { return goal ? Math.min(100, (current / goal) * 100) : 0; }
 
   function openFoodModal(food, mode = "add", entry = null) {
@@ -560,8 +660,77 @@ export default function App() {
         {activeTab === "more" && (
           <section className="screen">
             <h2>More</h2>
-            <div className="segmented"><button className={moreScreen === "progress" ? "active" : ""} onClick={() => setMoreScreen("progress")}>Progress</button><button className={moreScreen === "settings" ? "active" : ""} onClick={() => setMoreScreen("settings")}>Settings</button></div>
+            <div className="segmented three"><button className={moreScreen === "progress" ? "active" : ""} onClick={() => setMoreScreen("progress")}>Progress</button><button className={moreScreen === "calculator" ? "active" : ""} onClick={() => setMoreScreen("calculator")}>Calculator</button><button className={moreScreen === "settings" ? "active" : ""} onClick={() => setMoreScreen("settings")}>Settings</button></div>
             {moreScreen === "progress" && (<><div className="summary-grid two"><div className="summary-card"><span>7-day calorie average</span><strong>{round(weeklyAverage, 0)} kcal</strong></div><div className="summary-card"><span>Tracked days</span><strong>{last7Days.filter(d => d.entries.length > 0).length}/7</strong></div></div><div className="card"><h3>Last 7 days</h3><div className="weekly-list">{last7Days.map(day => <div className="weekly-day" key={day.date}><span>{day.date}</span><strong>{round(day.totals.kcal, 0)} kcal</strong><div className="mini-bar"><div style={{ width: `${progress(day.totals.kcal, goals.kcal)}%` }} /></div></div>)}</div></div></>)}
+            {moreScreen === "calculator" && (
+              <div className="card macro-calculator-card">
+                <h3>Macro calculator</h3>
+                <p className="small-muted">Uses Mifflin-St Jeor for BMR, multiplies by activity for TDEE, then adjusts calories for loss, gain or maintenance. Treat this as a strong starting estimate, not medical advice.</p>
+
+                <div className="form-grid">
+                  <div>
+                    <label>Sex</label>
+                    <select value={macroCalc.sex} onChange={e => updateMacroCalc("sex", e.target.value)}><option value="male">Male</option><option value="female">Female</option></select>
+                  </div>
+                  <NumberInput label="Age" value={macroCalc.age} onChange={v => updateMacroCalc("age", v)} />
+                  <NumberInput label={`Height ${macroCalc.heightUnit}`} value={macroCalc.height} onChange={v => updateMacroCalc("height", v)} />
+                  <div>
+                    <label>Height unit</label>
+                    <select value={macroCalc.heightUnit} onChange={e => updateMacroCalc("heightUnit", e.target.value)}><option value="cm">cm</option><option value="in">in</option></select>
+                  </div>
+                  <NumberInput label={`Weight ${macroCalc.weightUnit}`} value={macroCalc.weight} onChange={v => updateMacroCalc("weight", v)} />
+                  <div>
+                    <label>Weight unit</label>
+                    <select value={macroCalc.weightUnit} onChange={e => updateMacroCalc("weightUnit", e.target.value)}><option value="kg">kg</option><option value="lb">lb</option></select>
+                  </div>
+                  <div>
+                    <label>Activity</label>
+                    <select value={macroCalc.activityFactor} onChange={e => updateMacroCalc("activityFactor", e.target.value)}>
+                      <option value="1.2">Sedentary — little exercise</option>
+                      <option value="1.375">Light — 1-3 days/week</option>
+                      <option value="1.55">Moderate — 3-5 days/week</option>
+                      <option value="1.725">Very active — 6-7 days/week</option>
+                      <option value="1.9">Extra active — hard work/training</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label>Goal</label>
+                    <select value={macroCalc.goal} onChange={e => updateMacroCalc("goal", e.target.value)}>
+                      <option value="lose">Lose weight</option>
+                      <option value="maintain">Maintain</option>
+                      <option value="gain">Gain weight</option>
+                    </select>
+                  </div>
+                  <NumberInput label="Weekly pace kg" value={macroCalc.weeklyPaceKg} onChange={v => updateMacroCalc("weeklyPaceKg", v)} />
+                  <NumberInput label="Protein g/kg" value={macroCalc.proteinPerKg} onChange={v => updateMacroCalc("proteinPerKg", v)} />
+                  <NumberInput label="Fat % of calories" value={macroCalc.fatPercent} onChange={v => updateMacroCalc("fatPercent", v)} />
+                </div>
+
+                <div className="button-row">
+                  <button className="secondary-button" onClick={useLatestWeightForCalculator}><Scale size={16} />Use latest weight</button>
+                </div>
+
+                {macroResult ? (
+                  <div className="calculator-result">
+                    <div className="summary-grid two">
+                      <div className="summary-card"><span>BMR</span><strong>{round(macroResult.bmr, 0)} kcal</strong><small>resting estimate</small></div>
+                      <div className="summary-card"><span>TDEE</span><strong>{round(macroResult.tdee, 0)} kcal</strong><small>maintenance estimate</small></div>
+                    </div>
+                    <div className="summary-grid">
+                      <SummaryCard label="Target kcal" value={round(macroResult.calories, 0)} goal={round(macroResult.tdee, 0)} suffix="kcal" progress={progress(macroResult.calories, macroResult.tdee)} />
+                      <div className="summary-card"><span>Protein</span><strong>{round(macroResult.protein, 0)} g</strong><small>{macroCalc.proteinPerKg} g/kg</small></div>
+                      <div className="summary-card"><span>Carbs</span><strong>{round(macroResult.carbs, 0)} g</strong><small>remaining calories</small></div>
+                      <div className="summary-card"><span>Fat</span><strong>{round(macroResult.fat, 0)} g</strong><small>{macroCalc.fatPercent}% calories</small></div>
+                      <div className="summary-card"><span>Goal</span><strong>{macroCalc.goal}</strong><small>{macroCalc.weeklyPaceKg} kg/week</small></div>
+                    </div>
+                    <button className="primary-button full" onClick={applyMacroPlanToGoals}><Target size={16} />Apply to daily goals</button>
+                  </div>
+                ) : (
+                  <p className="empty">Enter age, height and weight to calculate your starting calories and macros.</p>
+                )}
+              </div>
+            )}
+
             {moreScreen === "settings" && (
               <div className="card">
                 <h3>Settings & goals</h3>
