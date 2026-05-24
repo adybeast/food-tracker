@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import "./App.css";
 
-const STORAGE_KEY = "lazy_food_tracker_v5";
+const STORAGE_KEY = "lazy_food_tracker_v6";
 const appName = "Lazy Food Tracker";
 
 const builtInFoods = [
@@ -150,12 +150,28 @@ export default function App() {
   const [onlineLoading, setOnlineLoading] = useState(false);
   const [onlineError, setOnlineError] = useState("");
 
+  const [modalFood, setModalFood] = useState(null);
+  const [modalAmount, setModalAmount] = useState(100);
+  const [modalMacros, setModalMacros] = useState({
+    kcal: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0,
+    salt: 0,
+  });
+
   const [meal, setMeal] = useState("Breakfast");
   const [selectedFoodId, setSelectedFoodId] = useState(builtInFoods[0].id);
   const [amount, setAmount] = useState(100);
 
   const [showMacroEditor, setShowMacroEditor] = useState(false);
-  const [editedMacros, setEditedMacros] = useState({ kcal: 0, protein: 0, carbs: 0, fat: 0, salt: 0 });
+  const [editedMacros, setEditedMacros] = useState({
+    kcal: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0,
+    salt: 0,
+  });
 
   const [newFood, setNewFood] = useState({
     name: "",
@@ -288,7 +304,6 @@ export default function App() {
   }, [entriesByDate]);
 
   const weeklyAverage = last7Days.reduce((sum, day) => sum + day.totals.kcal, 0) / 7;
-
   const recipeBuilderTotals = calculateRecipeTotals(recipeBuilderItems);
   const recipeDraftTotals = calculateRecipeTotals(recipeDraftItems);
 
@@ -337,9 +352,71 @@ export default function App() {
     }));
   }
 
+  function openFoodEditModal(food) {
+    const startingAmount = food.serving || 100;
+    const nutrition = scaleFood(food, startingAmount);
+
+    setModalFood(food);
+    setModalAmount(startingAmount);
+    setModalMacros({
+      kcal: round(nutrition.kcal, 0),
+      protein: round(nutrition.protein),
+      carbs: round(nutrition.carbs),
+      fat: round(nutrition.fat),
+      salt: round(nutrition.salt, 2),
+    });
+  }
+
+  function closeFoodEditModal() {
+    setModalFood(null);
+  }
+
+  function updateModalAmount(value) {
+    const amountNumber = Number(value || 0);
+    setModalAmount(amountNumber);
+
+    if (!modalFood) return;
+
+    const nutrition = scaleFood(modalFood, amountNumber);
+
+    setModalMacros({
+      kcal: round(nutrition.kcal, 0),
+      protein: round(nutrition.protein),
+      carbs: round(nutrition.carbs),
+      fat: round(nutrition.fat),
+      salt: round(nutrition.salt, 2),
+    });
+  }
+
+  function updateModalMacro(key, value) {
+    setModalMacros((prev) => ({
+      ...prev,
+      [key]: Number(value),
+    }));
+  }
+
+  function addModalFoodToLog() {
+    if (!modalFood) return;
+
+    const alreadyExists = customFoods.some(
+      (item) =>
+        String(item.id) === String(modalFood.id) ||
+        (modalFood.barcode && item.barcode === modalFood.barcode)
+    );
+
+    if (!alreadyExists && modalFood.custom) {
+      setCustomFoods((prev) => [...prev, modalFood]);
+    }
+
+    addFoodToLog(modalFood, modalAmount, modalMacros);
+    setModalFood(null);
+  }
+
   function saveFoodToMyFoods(food) {
     const alreadyExists = customFoods.some(
-      (item) => String(item.id) === String(food.id) || (food.barcode && item.barcode === food.barcode)
+      (item) =>
+        String(item.id) === String(food.id) ||
+        (food.barcode && item.barcode === food.barcode)
     );
 
     if (alreadyExists) {
@@ -675,12 +752,8 @@ export default function App() {
                 value={selectedFoodId}
                 onChange={(e) => {
                   const food = allFoods.find((f) => String(f.id) === String(e.target.value));
-
                   setSelectedFoodId(e.target.value);
-
-                  if (food) {
-                    setAmount(food.serving);
-                  }
+                  if (food) setAmount(food.serving);
                 }}
               >
                 {filteredLogFoods.map((food) => (
@@ -691,11 +764,7 @@ export default function App() {
               </select>
 
               <label>Amount</label>
-              <input
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-              />
+              <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} />
 
               <div className="preview-box">
                 <strong>{selectedFood.name}</strong>
@@ -748,7 +817,7 @@ export default function App() {
             <div className="card">
               <h3>Online food search</h3>
               <p className="small-muted">
-                Search packaged products online. Save useful results or add them directly.
+                Search packaged products online. Choose amount and edit macros in a popup before logging.
               </p>
 
               <div className="online-search-row">
@@ -790,9 +859,9 @@ export default function App() {
                           Save to My Foods
                         </button>
 
-                        <button className="primary-button" onClick={() => addFoodToLog(food, 100)}>
+                        <button className="primary-button" onClick={() => openFoodEditModal(food)}>
                           <Plus size={16} />
-                          Add 100g today
+                          Choose amount / edit
                         </button>
                       </div>
                     </div>
@@ -932,11 +1001,7 @@ export default function App() {
               </select>
 
               <label>Amount</label>
-              <input
-                type="number"
-                value={recipeAmount}
-                onChange={(e) => setRecipeAmount(e.target.value)}
-              />
+              <input type="number" value={recipeAmount} onChange={(e) => setRecipeAmount(e.target.value)} />
 
               <button className="secondary-button full" onClick={addItemToRecipeBuilder}>
                 <Plus size={16} />
@@ -1079,10 +1144,7 @@ export default function App() {
                 </button>
 
                 <label>Save adjusted version as</label>
-                <input
-                  value={adjustedRecipeName}
-                  onChange={(e) => setAdjustedRecipeName(e.target.value)}
-                />
+                <input value={adjustedRecipeName} onChange={(e) => setAdjustedRecipeName(e.target.value)} />
 
                 <button className="secondary-button full" onClick={saveAdjustedRecipeAsNew}>
                   <Save size={16} />
@@ -1144,6 +1206,61 @@ export default function App() {
           </section>
         )}
       </main>
+
+      {modalFood && (
+        <div className="modal-overlay" onClick={closeFoodEditModal}>
+          <div className="food-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div>
+                <h3>{modalFood.name}</h3>
+                <p>
+                  {modalFood.brand ? `${modalFood.brand} • ` : ""}
+                  {modalFood.category}
+                </p>
+              </div>
+
+              <button className="modal-close-button" onClick={closeFoodEditModal}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <label>Meal</label>
+            <select value={meal} onChange={(e) => setMeal(e.target.value)}>
+              <option>Breakfast</option>
+              <option>Lunch</option>
+              <option>Dinner</option>
+              <option>Snack</option>
+            </select>
+
+            <label>Amount</label>
+            <input type="number" value={modalAmount} onChange={(e) => updateModalAmount(e.target.value)} />
+
+            <div className="preview-box">
+              <strong>Nutrition for this log</strong>
+              <p>
+                {round(modalMacros.kcal, 0)} kcal,
+                P {round(modalMacros.protein)}g,
+                C {round(modalMacros.carbs)}g,
+                F {round(modalMacros.fat)}g,
+                Salt {round(modalMacros.salt, 2)}g
+              </p>
+            </div>
+
+            <div className="form-grid">
+              <MacroInput label="Calories" value={modalMacros.kcal} onChange={(value) => updateModalMacro("kcal", value)} />
+              <MacroInput label="Protein g" value={modalMacros.protein} onChange={(value) => updateModalMacro("protein", value)} />
+              <MacroInput label="Carbs g" value={modalMacros.carbs} onChange={(value) => updateModalMacro("carbs", value)} />
+              <MacroInput label="Fat g" value={modalMacros.fat} onChange={(value) => updateModalMacro("fat", value)} />
+              <MacroInput label="Salt g" value={modalMacros.salt} onChange={(value) => updateModalMacro("salt", value)} />
+            </div>
+
+            <button className="primary-button full" onClick={addModalFoodToLog}>
+              <Plus size={16} />
+              Add to daily log
+            </button>
+          </div>
+        </div>
+      )}
 
       <nav className="bottom-nav">
         <NavButton active={activeTab === "dashboard"} onClick={() => setActiveTab("dashboard")} icon={<Home size={18} />} label="Today" />
