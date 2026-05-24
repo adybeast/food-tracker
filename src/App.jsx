@@ -1,9 +1,19 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Search, Plus, Trash2, Home, BookOpen, BarChart3, Settings, Utensils } from "lucide-react";
+import {
+  Search,
+  Plus,
+  Trash2,
+  Home,
+  BookOpen,
+  BarChart3,
+  Settings,
+  Utensils,
+} from "lucide-react";
 import "./App.css";
 
 const STORAGE_KEY = "adis_food_tracker_v2";
 const appName = "Lazy Food Tracker";
+
 const foodDb = [
   { id: 1, name: "Chicken breast, cooked", category: "Meat", serving: 100, unit: "g", kcal: 165, protein: 31, carbs: 0, fat: 3.6, salt: 0.19 },
   { id: 2, name: "Egg, whole", category: "Eggs", serving: 1, unit: "egg", kcal: 72, protein: 6.3, carbs: 0.4, fat: 4.8, salt: 0.18 },
@@ -30,7 +40,8 @@ function round(n, digits = 1) {
 }
 
 function scaleFood(food, amount) {
-  const factor = Number(amount) / Number(food.serving);
+  const factor = Number(amount || 0) / Number(food.serving || 100);
+
   return {
     kcal: food.kcal * factor,
     protein: food.protein * factor,
@@ -57,11 +68,29 @@ function getTotals(entries) {
 export default function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [date, setDate] = useState(todayKey());
-  const [query, setQuery] = useState("");
+
+  const [databaseSearch, setDatabaseSearch] = useState("");
+  const [logFoodSearch, setLogFoodSearch] = useState("");
+
   const [meal, setMeal] = useState("Breakfast");
   const [selectedFoodId, setSelectedFoodId] = useState(foodDb[0].id);
   const [amount, setAmount] = useState(100);
+
   const [entriesByDate, setEntriesByDate] = useState({});
+  const [customFoods, setCustomFoods] = useState([]);
+
+  const [newFood, setNewFood] = useState({
+    name: "",
+    category: "Custom",
+    serving: 100,
+    unit: "g",
+    kcal: "",
+    protein: "",
+    carbs: "",
+    fat: "",
+    salt: "",
+  });
+
   const [goals, setGoals] = useState({
     kcal: 2200,
     protein: 160,
@@ -69,14 +98,20 @@ export default function App() {
     fat: 70,
     salt: 5,
   });
-  const [appName, ] = useState("Lazy Food Tracker");
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
+
     if (saved) {
-      const data = JSON.parse(saved);
-setEntriesByDate(data.entriesByDate || {});
-setGoals(data.goals || goals);    }
+      try {
+        const data = JSON.parse(saved);
+        setEntriesByDate(data.entriesByDate || {});
+        setCustomFoods(data.customFoods || []);
+        setGoals(data.goals || goals);
+      } catch {
+        console.log("Could not load saved data.");
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -84,24 +119,41 @@ setGoals(data.goals || goals);    }
       STORAGE_KEY,
       JSON.stringify({
         entriesByDate,
+        customFoods,
         goals,
-        appName,
       })
     );
-  }, [entriesByDate, goals, appName]);
+  }, [entriesByDate, customFoods, goals]);
 
-  const selectedFood = foodDb.find((food) => food.id === Number(selectedFoodId)) || foodDb[0];
+  const allFoods = useMemo(() => {
+    return [...foodDb, ...customFoods];
+  }, [customFoods]);
+
+  const selectedFood =
+    allFoods.find((food) => String(food.id) === String(selectedFoodId)) || allFoods[0];
+
   const entries = entriesByDate[date] || [];
   const totals = getTotals(entries);
 
-  const filteredFoods = useMemo(() => {
-    const q = query.toLowerCase().trim();
-    return foodDb.filter(
+  const filteredDatabaseFoods = useMemo(() => {
+    const q = databaseSearch.toLowerCase().trim();
+
+    return allFoods.filter(
       (food) =>
         food.name.toLowerCase().includes(q) ||
         food.category.toLowerCase().includes(q)
     );
-  }, [query]);
+  }, [databaseSearch, allFoods]);
+
+  const filteredLogFoods = useMemo(() => {
+    const q = logFoodSearch.toLowerCase().trim();
+
+    return allFoods.filter(
+      (food) =>
+        food.name.toLowerCase().includes(q) ||
+        food.category.toLowerCase().includes(q)
+    );
+  }, [logFoodSearch, allFoods]);
 
   function addFood() {
     if (!selectedFood) return;
@@ -113,7 +165,7 @@ setGoals(data.goals || goals);    }
       name: selectedFood.name,
       category: selectedFood.category,
       meal,
-      amount,
+      amount: Number(amount),
       unit: selectedFood.unit,
       ...nutrition,
     };
@@ -133,6 +185,50 @@ setGoals(data.goals || goals);    }
     }));
   }
 
+  function addCustomFood() {
+    if (!newFood.name.trim()) {
+      alert("Food name is required.");
+      return;
+    }
+
+    const foodToAdd = {
+      id: `custom-${crypto.randomUUID()}`,
+      name: newFood.name.trim(),
+      category: newFood.category.trim() || "Custom",
+      serving: Number(newFood.serving || 100),
+      unit: newFood.unit.trim() || "g",
+      kcal: Number(newFood.kcal || 0),
+      protein: Number(newFood.protein || 0),
+      carbs: Number(newFood.carbs || 0),
+      fat: Number(newFood.fat || 0),
+      salt: Number(newFood.salt || 0),
+      custom: true,
+    };
+
+    setCustomFoods((prev) => [...prev, foodToAdd]);
+
+    setNewFood({
+      name: "",
+      category: "Custom",
+      serving: 100,
+      unit: "g",
+      kcal: "",
+      protein: "",
+      carbs: "",
+      fat: "",
+      salt: "",
+    });
+
+    setSelectedFoodId(foodToAdd.id);
+    setAmount(foodToAdd.serving);
+
+    alert("Custom food added.");
+  }
+
+  function deleteCustomFood(id) {
+    setCustomFoods((prev) => prev.filter((food) => food.id !== id));
+  }
+
   function updateGoal(key, value) {
     setGoals((prev) => ({
       ...prev,
@@ -145,19 +241,23 @@ setGoals(data.goals || goals);    }
     return Math.min(100, (current / goal) * 100);
   }
 
-  const last7Days = [...Array(7)].map((_, index) => {
-    const d = new Date();
-    d.setDate(d.getDate() - index);
-    const key = d.toISOString().slice(0, 10);
-    const dayEntries = entriesByDate[key] || [];
-    return {
-      date: key,
-      totals: getTotals(dayEntries),
-      entries: dayEntries,
-    };
-  }).reverse();
+  const last7Days = [...Array(7)]
+    .map((_, index) => {
+      const d = new Date();
+      d.setDate(d.getDate() - index);
+      const key = d.toISOString().slice(0, 10);
+      const dayEntries = entriesByDate[key] || [];
 
-  const weeklyAverage = last7Days.reduce((sum, day) => sum + day.totals.kcal, 0) / 7;
+      return {
+        date: key,
+        totals: getTotals(dayEntries),
+        entries: dayEntries,
+      };
+    })
+    .reverse();
+
+  const weeklyAverage =
+    last7Days.reduce((sum, day) => sum + day.totals.kcal, 0) / 7;
 
   return (
     <div className="app">
@@ -166,6 +266,7 @@ setGoals(data.goals || goals);    }
           <h1>{appName}</h1>
           <p>Calories, macros, salt and food database.</p>
         </div>
+
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
       </header>
 
@@ -174,6 +275,7 @@ setGoals(data.goals || goals);    }
           <section className="screen">
             <div className="screen-title">
               <h2>Daily Dashboard</h2>
+
               <button onClick={() => setActiveTab("log")} className="primary-button">
                 <Plus size={16} />
                 Add Food
@@ -199,15 +301,21 @@ setGoals(data.goals || goals);    }
                     <div className="entry" key={entry.id}>
                       <div>
                         <strong>{entry.name}</strong>
-                        <p>{entry.meal} • {entry.amount} {entry.unit}</p>
+                        <p>
+                          {entry.meal} • {entry.amount} {entry.unit}
+                        </p>
                       </div>
+
                       <div className="entry-info">
                         <span>{round(entry.kcal, 0)} kcal</span>
                         <span>P {round(entry.protein)}g</span>
                         <span>C {round(entry.carbs)}g</span>
                         <span>F {round(entry.fat)}g</span>
                         <span>Salt {round(entry.salt, 2)}g</span>
-                        <button onClick={() => deleteEntry(entry.id)}><Trash2 size={16} /></button>
+
+                        <button onClick={() => deleteEntry(entry.id)}>
+                          <Trash2 size={16} />
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -230,16 +338,29 @@ setGoals(data.goals || goals);    }
                 <option>Snack</option>
               </select>
 
+              <label>Search food</label>
+              <input
+                value={logFoodSearch}
+                onChange={(e) => setLogFoodSearch(e.target.value)}
+                placeholder="Type chicken, egg, burek..."
+              />
+
               <label>Choose food</label>
               <select
                 value={selectedFoodId}
                 onChange={(e) => {
-                  const food = foodDb.find((f) => f.id === Number(e.target.value));
+                  const food = allFoods.find(
+                    (f) => String(f.id) === String(e.target.value)
+                  );
+
                   setSelectedFoodId(e.target.value);
-                  if (food) setAmount(food.serving);
+
+                  if (food) {
+                    setAmount(food.serving);
+                  }
                 }}
               >
-                {foodDb.map((food) => (
+                {filteredLogFoods.map((food) => (
                   <option key={food.id} value={food.id}>
                     {food.name} — {food.kcal} kcal
                   </option>
@@ -256,11 +377,12 @@ setGoals(data.goals || goals);    }
               <div className="preview-box">
                 <strong>{selectedFood.name}</strong>
                 <p>
-                  {amount} {selectedFood.unit} = {round(scaleFood(selectedFood, amount).kcal, 0)} kcal,
-                  P {round(scaleFood(selectedFood, amount).protein)}g,
-                  C {round(scaleFood(selectedFood, amount).carbs)}g,
-                  F {round(scaleFood(selectedFood, amount).fat)}g,
-                  Salt {round(scaleFood(selectedFood, amount).salt, 2)}g
+                  {amount} {selectedFood.unit} ={" "}
+                  {round(scaleFood(selectedFood, amount).kcal, 0)} kcal, P{" "}
+                  {round(scaleFood(selectedFood, amount).protein)}g, C{" "}
+                  {round(scaleFood(selectedFood, amount).carbs)}g, F{" "}
+                  {round(scaleFood(selectedFood, amount).fat)}g, Salt{" "}
+                  {round(scaleFood(selectedFood, amount).salt, 2)}g
                 </p>
               </div>
 
@@ -276,28 +398,146 @@ setGoals(data.goals || goals);    }
           <section className="screen">
             <h2>Food Database</h2>
 
+            <div className="card">
+              <h3>Add custom food</h3>
+
+              <label>Food name</label>
+              <input
+                value={newFood.name}
+                onChange={(e) => setNewFood({ ...newFood, name: e.target.value })}
+                placeholder="Example: Paladin cheddar slice"
+              />
+
+              <label>Category</label>
+              <input
+                value={newFood.category}
+                onChange={(e) =>
+                  setNewFood({ ...newFood, category: e.target.value })
+                }
+                placeholder="Example: Dairy, Balkan, Snack"
+              />
+
+              <div className="form-grid">
+                <div>
+                  <label>Serving</label>
+                  <input
+                    type="number"
+                    value={newFood.serving}
+                    onChange={(e) =>
+                      setNewFood({ ...newFood, serving: e.target.value })
+                    }
+                  />
+                </div>
+
+                <div>
+                  <label>Unit</label>
+                  <input
+                    value={newFood.unit}
+                    onChange={(e) =>
+                      setNewFood({ ...newFood, unit: e.target.value })
+                    }
+                    placeholder="g, ml, slice, piece"
+                  />
+                </div>
+              </div>
+
+              <div className="form-grid">
+                <div>
+                  <label>Calories</label>
+                  <input
+                    type="number"
+                    value={newFood.kcal}
+                    onChange={(e) =>
+                      setNewFood({ ...newFood, kcal: e.target.value })
+                    }
+                  />
+                </div>
+
+                <div>
+                  <label>Protein g</label>
+                  <input
+                    type="number"
+                    value={newFood.protein}
+                    onChange={(e) =>
+                      setNewFood({ ...newFood, protein: e.target.value })
+                    }
+                  />
+                </div>
+
+                <div>
+                  <label>Carbs g</label>
+                  <input
+                    type="number"
+                    value={newFood.carbs}
+                    onChange={(e) =>
+                      setNewFood({ ...newFood, carbs: e.target.value })
+                    }
+                  />
+                </div>
+
+                <div>
+                  <label>Fat g</label>
+                  <input
+                    type="number"
+                    value={newFood.fat}
+                    onChange={(e) =>
+                      setNewFood({ ...newFood, fat: e.target.value })
+                    }
+                  />
+                </div>
+
+                <div>
+                  <label>Salt g</label>
+                  <input
+                    type="number"
+                    value={newFood.salt}
+                    onChange={(e) =>
+                      setNewFood({ ...newFood, salt: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+
+              <button className="primary-button full" onClick={addCustomFood}>
+                <Plus size={16} />
+                Save custom food
+              </button>
+            </div>
+
             <div className="search-box">
               <Search size={18} />
               <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                value={databaseSearch}
+                onChange={(e) => setDatabaseSearch(e.target.value)}
                 placeholder="Search food or category..."
               />
             </div>
 
             <div className="food-database">
-              {filteredFoods.map((food) => (
+              {filteredDatabaseFoods.map((food) => (
                 <div className="food-card" key={food.id}>
                   <div>
                     <strong>{food.name}</strong>
-                    <p>{food.category} • per {food.serving} {food.unit}</p>
+                    <p>
+                      {food.category} • per {food.serving} {food.unit}
+                    </p>
                   </div>
+
                   <div className="macro-row">
                     <span>{food.kcal} kcal</span>
                     <span>P {food.protein}g</span>
                     <span>C {food.carbs}g</span>
                     <span>F {food.fat}g</span>
                     <span>Salt {food.salt}g</span>
+
+                    {food.custom && (
+                      <button
+                        className="small-danger-button"
+                        onClick={() => deleteCustomFood(food.id)}
+                      >
+                        Delete
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -314,6 +554,7 @@ setGoals(data.goals || goals);    }
                 <span>7-day calorie average</span>
                 <strong>{round(weeklyAverage, 0)} kcal</strong>
               </div>
+
               <div className="summary-card">
                 <span>Tracked days</span>
                 <strong>{last7Days.filter((d) => d.entries.length > 0).length}/7</strong>
@@ -322,11 +563,13 @@ setGoals(data.goals || goals);    }
 
             <div className="card">
               <h3>Last 7 days</h3>
+
               <div className="weekly-list">
                 {last7Days.map((day) => (
                   <div className="weekly-day" key={day.date}>
                     <span>{day.date}</span>
                     <strong>{round(day.totals.kcal, 0)} kcal</strong>
+
                     <div className="mini-bar">
                       <div style={{ width: `${progress(day.totals.kcal, goals.kcal)}%` }} />
                     </div>
@@ -342,23 +585,42 @@ setGoals(data.goals || goals);    }
             <h2>Settings</h2>
 
             <div className="card">
-
               <h3>Daily goals</h3>
 
               <label>Calories</label>
-              <input type="number" value={goals.kcal} onChange={(e) => updateGoal("kcal", e.target.value)} />
+              <input
+                type="number"
+                value={goals.kcal}
+                onChange={(e) => updateGoal("kcal", e.target.value)}
+              />
 
               <label>Protein g</label>
-              <input type="number" value={goals.protein} onChange={(e) => updateGoal("protein", e.target.value)} />
+              <input
+                type="number"
+                value={goals.protein}
+                onChange={(e) => updateGoal("protein", e.target.value)}
+              />
 
               <label>Carbs g</label>
-              <input type="number" value={goals.carbs} onChange={(e) => updateGoal("carbs", e.target.value)} />
+              <input
+                type="number"
+                value={goals.carbs}
+                onChange={(e) => updateGoal("carbs", e.target.value)}
+              />
 
               <label>Fat g</label>
-              <input type="number" value={goals.fat} onChange={(e) => updateGoal("fat", e.target.value)} />
+              <input
+                type="number"
+                value={goals.fat}
+                onChange={(e) => updateGoal("fat", e.target.value)}
+              />
 
               <label>Salt g</label>
-              <input type="number" value={goals.salt} onChange={(e) => updateGoal("salt", e.target.value)} />
+              <input
+                type="number"
+                value={goals.salt}
+                onChange={(e) => updateGoal("salt", e.target.value)}
+              />
             </div>
           </section>
         )}
@@ -379,8 +641,13 @@ function SummaryCard({ label, value, goal, suffix, progress }) {
   return (
     <div className="summary-card">
       <span>{label}</span>
-      <strong>{value} {suffix}</strong>
-      <small>Goal: {goal} {suffix}</small>
+      <strong>
+        {value} {suffix}
+      </strong>
+      <small>
+        Goal: {goal} {suffix}
+      </small>
+
       <div className="progress-bar">
         <div style={{ width: `${progress}%` }} />
       </div>

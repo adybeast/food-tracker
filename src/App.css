@@ -426,3 +426,24 @@ p {
     font-size: 11px;
   }
 }
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.small-danger-button {
+  border: 0;
+  background: #fee2e2;
+  color: #991b1b;
+  -webkit-text-fill-color: #991b1b;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-weight: 700;
+}
+
+@media (max-width: 600px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
