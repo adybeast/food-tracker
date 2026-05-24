@@ -257,6 +257,7 @@ export default function App() {
     proteinPerKg: "1.8",
     fatPercent: "25",
   });
+  const [macroResult, setMacroResult] = useState(null);
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -297,8 +298,6 @@ export default function App() {
 
   const weeklyAverage = last7Days.reduce((sum, d) => sum + d.totals.kcal, 0) / 7;
 
-  const macroResult = useMemo(() => calculateMacroPlan(macroCalc), [macroCalc]);
-
   function updateSearch(key, value) { setSearches(prev => ({ ...prev, [key]: value })); }
   function updateGoal(key, value) {
     setGoals(prev => ({ ...prev, [key]: ["goalType", "unitSystem", "bodyUnit", "weightUnit"].includes(key) ? value : Number(value) }));
@@ -306,6 +305,32 @@ export default function App() {
 
   function updateMacroCalc(key, value) {
     setMacroCalc(prev => ({ ...prev, [key]: value }));
+  }
+
+  function runMacroCalculator() {
+    try {
+      const result = calculateMacroPlan(macroCalc);
+
+      if (!result || !Number.isFinite(result.calories)) {
+        setMacroResult(null);
+        alert("Please enter a realistic age, height and weight first.");
+        return;
+      }
+
+      setMacroResult({
+        bmr: Number(result.bmr || 0),
+        tdee: Number(result.tdee || 0),
+        calories: Number(result.calories || 0),
+        protein: Number(result.protein || 0),
+        carbs: Number(result.carbs || 0),
+        fat: Number(result.fat || 0),
+        weightKg: Number(result.weightKg || 0),
+      });
+    } catch (error) {
+      console.error("Macro calculator failed", error);
+      setMacroResult(null);
+      alert("Calculator failed. Check the values and try again.");
+    }
   }
 
   function applyMacroPlanToGoals() {
@@ -708,25 +733,24 @@ export default function App() {
 
                 <div className="button-row">
                   <button className="secondary-button" onClick={useLatestWeightForCalculator}><Scale size={16} />Use latest weight</button>
+                  <button className="primary-button" onClick={runMacroCalculator}><Calculator size={16} />Calculate macros</button>
                 </div>
 
                 {macroResult ? (
                   <div className="calculator-result">
-                    <div className="summary-grid two">
-                      <div className="summary-card"><span>BMR</span><strong>{round(macroResult.bmr, 0)} kcal</strong><small>resting estimate</small></div>
-                      <div className="summary-card"><span>TDEE</span><strong>{round(macroResult.tdee, 0)} kcal</strong><small>maintenance estimate</small></div>
+                    <div className="preview-box">
+                      <strong>Macro plan result</strong>
+                      <p>BMR: {round(macroResult.bmr, 0)} kcal</p>
+                      <p>Maintenance / TDEE: {round(macroResult.tdee, 0)} kcal</p>
+                      <p>Target calories: {round(macroResult.calories, 0)} kcal</p>
+                      <p>Protein: {round(macroResult.protein, 0)} g</p>
+                      <p>Carbs: {round(macroResult.carbs, 0)} g</p>
+                      <p>Fat: {round(macroResult.fat, 0)} g</p>
                     </div>
-                    <div className="summary-grid">
-                      <SummaryCard label="Target kcal" value={round(macroResult.calories, 0)} goal={round(macroResult.tdee, 0)} suffix="kcal" progress={progress(macroResult.calories, macroResult.tdee)} />
-                      <div className="summary-card"><span>Protein</span><strong>{round(macroResult.protein, 0)} g</strong><small>{macroCalc.proteinPerKg} g/kg</small></div>
-                      <div className="summary-card"><span>Carbs</span><strong>{round(macroResult.carbs, 0)} g</strong><small>remaining calories</small></div>
-                      <div className="summary-card"><span>Fat</span><strong>{round(macroResult.fat, 0)} g</strong><small>{macroCalc.fatPercent}% calories</small></div>
-                      <div className="summary-card"><span>Goal</span><strong>{macroCalc.goal}</strong><small>{macroCalc.weeklyPaceKg} kg/week</small></div>
-                    </div>
-                    <button className="primary-button full" onClick={applyMacroPlanToGoals}><Target size={16} />Apply to daily goals</button>
+                    <button className="primary-button full" onClick={applyMacroPlanToGoals}>Apply to daily goals</button>
                   </div>
                 ) : (
-                  <p className="empty">Enter age, height and weight to calculate your starting calories and macros.</p>
+                  <p className="empty">Enter age, height and weight, then press Calculate macros.</p>
                 )}
               </div>
             )}

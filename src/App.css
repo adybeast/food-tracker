@@ -448,3 +448,38 @@ p { margin: 0; }
   color: transparent;
   -webkit-text-fill-color: transparent;
 }
+
+
+.calculator-result-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.calculator-result-card {
+  background: var(--soft);
+  border-radius: 18px;
+  padding: 14px;
+}
+
+.calculator-result-card span {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.calculator-result-card strong {
+  display: block;
+  font-size: 22px;
+  margin-top: 5px;
+}
+
+.calculator-result-card small {
+  color: var(--muted);
+}
+
+@media (max-width: 600px) {
+  .calculator-result-grid {
+    grid-template-columns: 1fr;
+  }
+}
